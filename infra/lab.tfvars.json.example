@@ -5,8 +5,5 @@
   "private_network": true,
   "anthropic_model": "claude-sonnet-4-6",
   "observability_provider": "datadog",
-  "datadog_site": "datadoghq.com",
-  "splunk_hec_endpoint": "",
-  "splunk_hec_verify_tls": true,
-  "splunk_delivery_mode": "hec"
+  "datadog_site": "datadoghq.com"
 }

@@ -60,7 +60,7 @@ def anthropic_simulado(*args, **kwargs):
                    usage={'input_tokens': 10, 'output_tokens': 10})
 
 stdout = io.StringIO()
-with patch.dict(lab.os.environ, {'ANTHROPIC_API_KEY': 'clave-ficticia-sin-red', 'SPLUNK_HEC_URL': ''}), \
+with patch.dict(lab.os.environ, {'ANTHROPIC_API_KEY': 'clave-ficticia-sin-red'}), \
      patch('anthropic.resources.messages.Messages.create', new=anthropic_simulado), \
      patch('openai.OpenAI.__init__', side_effect=AssertionError('No debe inicializar OpenAI')), \
      contextlib.redirect_stdout(stdout):

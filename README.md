@@ -14,7 +14,6 @@ Después de configurar la cuenta y las herramientas locales:
 ./lab publish  # Actualizar el código en AWS conservando las claves existentes.
 ./lab run      # Ejecutar los ocho casos en un contenedor.
 ./lab logs     # Ver los registros.
-./lab hec-test # Probar HEC estándar con un evento sintético.
 ./lab dashboard # Abrir la oficina de agentes en http://127.0.0.1:8765.
 ./lab down     # Detener y eliminar, incluidos logs, secretos y respaldo en AWS.
 ```
@@ -22,7 +21,7 @@ Después de configurar la cuenta y las herramientas locales:
 ## Observabilidad con Datadog en AWS
 
 Para la integración AWS + Datadog consulta primero [la guía Datadog](datadog/README.md).
-La configuración local ahora selecciona Datadog y desactiva el endpoint Splunk;
+La configuración local selecciona Datadog;
 confirma `datadog_site` antes de desplegar. `./lab datadog-test` valida Logs sin AWS.
 
 ## Opik (alternativa local)
@@ -41,7 +40,7 @@ herramientas, tokens, latencia y los veredictos de `compliance.py`.
 
 Abre http://127.0.0.1:5173 y selecciona el proyecto
 `agent-compliance-lab`. Cada misión de `opik-run` **sí consume tokens de
-Anthropic**, pero no inicia ECS, Fargate, Terraform ni envía eventos a Splunk.
+Anthropic**, pero no inicia ECS, Fargate ni Terraform.
 La primera inicialización descarga varias imágenes y puede tardar unos minutos.
 Una vez listo, las siguientes ejecuciones reutilizan las imágenes.
 
@@ -52,12 +51,6 @@ evaluación y puntuación de cumplimiento. No envía en esa evidencia la solicit
 ni la respuesta completa. `OPIK_ENABLED=true` activa la integración si ejecutas
 `laboratorio_empresa.py` directamente; configura `OPIK_URL_OVERRIDE` con
 `http://127.0.0.1:5173/api`.
-
-La conexión a un HEC existente de Splunk es opcional. El modo predeterminado
-envía directamente a HEC sin ACK, adecuado para probar con Splunk Cloud trial.
-Firehose queda como modo opcional para instancias que tengan esa integración
-habilitada. Las claves se solicitan con entrada oculta y no se almacenan en el
-estado de Terraform.
 
 ## Oficina visual y generación de datos
 
@@ -75,8 +68,8 @@ rechazos verificados, tokens y duración. Pulsa un personaje y selecciona un cas
 los detalles permanecen ocultos por defecto. Las teclas 1–4 abren agentes.
 
 Lee eventos reales de CloudWatch usando tu sesión de AWS; no necesita la clave
-de Anthropic ni el token de Splunk en el navegador. Muestra las últimas 12
-ejecuciones y una búsqueda por `run_id` para Splunk. Consulta AWS cada 2 segundos
+de Anthropic en el navegador. Muestra las últimas 12
+ejecuciones y una búsqueda por `run_id`. Consulta AWS cada 2 segundos
 más la latencia de las peticiones y la entrega de CloudWatch: no es tiempo real
 instantáneo. El contador muestra los tokens de las respuestas del proveedor,
 incluidas las que solicitan herramientas. Los registros antiguos se muestran
@@ -104,24 +97,7 @@ de la definición de tarea ECS. Para cambiar infraestructura o claves, usa
 `./lab up`. La versión actual registra cada respuesta al finalizar su tarea,
 en vez de registrar las cuatro juntas. Reinicia `./lab dashboard` si actualizas
 el código del servidor local.
-No se muestra razonamiento privado del LLM. Los eventos se envían a Splunk por la
-misma vía HEC configurada; la vista de CloudWatch no confirma su indexación.
-
-Para investigar una ejecución en Splunk:
-
-```spl
-index=main source="crewai-lab" run_id="ID_DE_LA_EJECUCION"
-| sort 0 _time
-| table _time evento agente tarea herramienta argumentos respuesta
-```
-
-Tokens de las ejecuciones con telemetría v3 o v4:
-
-```spl
-index=main source="crewai-lab" evento="llm_respuesta"
-| dedup run_id response_id
-| stats sum(tokens_entrada) as entrada sum(tokens_salida) as salida sum(tokens_total) as total count as respuestas by run_id modelo
-```
+No se muestra razonamiento privado del LLM.
 
 El panel escucha solo en `127.0.0.1`, rechaza orígenes externos y requiere un token
 de sesión local para lanzar ejecuciones. Mantén abierta tu sesión AWS; si expira,
@@ -184,49 +160,9 @@ Cada ejecución de una herramienta emite un evento JSON en consola con fecha UTC
 `run_id`, nombre de la herramienta, argumentos y resultado. Se imprimen además
 las ocho respuestas y el resultado final de `crew.kickoff()`.
 
-El dashboard Studio actualizado está en `splunk/compliance_studio.json`; reemplaza
-manualmente el código fuente de tu dashboard, conservando el índice que utilizas.
-No se publica automáticamente en Splunk. Incluye decisiones, operaciones y rechazos
-verificados, hallazgos y tiempo por caso. Las ejecuciones antiguas conservan su
-tratamiento anterior y no obtienen decisiones verificadas retroactivas.
-
-### Dashboard Mission Control (propuesta nueva)
-
-`splunk/compliance_mission_studio.json` es una alternativa para Dashboard Studio,
-con una misión seleccionada por defecto, cuatro tarjetas de agentes, operaciones
-permitidas, rechazos correctos, incumplimientos y errores técnicos separados. La
-tabla compara la decisión esperada con la observada; al seleccionar una fila,
-el panel inferior muestra herramientas, llamadas, motivo e identificadores de
-evidencia. `splunk/compliance_mission_base.spl` contiene su búsqueda base con el
-token `$run|s$` (para ejecutarla fuera del dashboard, sustitúyelo por un ID entre
-comillas o por `"latest"`).
-
-Para instalarla manualmente:
-
-1. Conserva el dashboard actual y crea otro en **Dashboard Studio**, con diseño
-   **Absolute**, llamado **AGENT WATCH · Mission Control**.
-2. Abre el editor de código fuente y pega el contenido completo de
-   `splunk/compliance_mission_studio.json`.
-3. Si tus eventos no están en `main`, cambia las dos apariciones de `index=main`
-   en las fuentes de datos `ds_base` y `ds_runs`. Verifica también `source="crewai-lab"`.
-4. Guarda y selecciona un periodo que incluya la misión. **Última misión del
-   periodo** se resuelve de nuevo al refrescar; puedes fijar una sesión del selector.
-5. Contrasta la tabla con los ocho eventos `decision_evaluada` de ese `run_id`
-   en Search. Una sesión completa que pase los controles tendrá ocho evaluaciones,
-   cuatro operaciones permitidas y cuatro rechazos correctos. Un fallo del modelo
-   o una evaluación ausente deben mostrarse como tales, no como cumplimiento.
-
-La sintaxis JSON, las referencias y los tokens se verificaron localmente; las
-consultas y el renderizado nativo aún requieren validación en tu instancia de
-Splunk Cloud. Este dashboard es un recurso histórico para Splunk;
-la integración Datadog se describe en [su guía](datadog/README.md). La última ingesta indica cuándo Splunk recibió un evento, no una conexión
-en vivo con AWS. `N/D` significa que falta evidencia. La cobertura solo es conocida
-si el periodo incluye `inicio_laboratorio`; si falta, amplía el periodo. Para
-comparaciones verificadas, usa ejecuciones con telemetría v4.
-
-Datadog ya dispone de integración opcional en código y Terraform para trazas de
-CrewAI/Anthropic y logs de compliance. Requiere desplegar la nueva imagen y verificar
-la ingesta en tu organización. Los archivos Splunk se conservan como referencia.
+La integración Datadog se describe en [su guía](datadog/README.md): trazas de
+CrewAI/Anthropic y logs de compliance en código y Terraform. Requiere desplegar
+la imagen y verificar la ingesta en tu organización.
 
 Verificación local sin créditos de Anthropic:
 

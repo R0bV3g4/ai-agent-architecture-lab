@@ -82,13 +82,3 @@ resource "aws_vpc_security_group_egress_rule" "https" {
   to_port           = 443
   cidr_ipv4         = "0.0.0.0/0"
 }
-
-# Muchos trials utilizan HTTPS en 8088. Firehose tiene su propia conectividad.
-resource "aws_vpc_security_group_egress_rule" "hec" {
-  count             = local.direct_hec_enabled && local.hec_port != 443 ? 1 : 0
-  security_group_id = aws_security_group.task.id
-  ip_protocol       = "tcp"
-  from_port         = local.hec_port
-  to_port           = local.hec_port
-  cidr_ipv4         = "0.0.0.0/0"
-}

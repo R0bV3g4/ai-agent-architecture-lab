@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-from datetime import datetime, timezone
 import getpass
 import json
 import os
@@ -25,9 +24,7 @@ OPIK_PROJECT = "agent-observability"
 TF = os.environ.get("TERRAFORM_BIN", "terraform")
 ALLOWED_CONFIG = {
     "aws_account_id", "aws_region", "project_name", "private_network",
-    "anthropic_model", "splunk_hec_endpoint", "splunk_delivery_mode",
-    "splunk_hec_verify_tls",
-    "observability_provider", "datadog_site",
+    "anthropic_model", "observability_provider", "datadog_site",
 }
 
 
@@ -39,7 +36,7 @@ def environment(**extra: str) -> dict[str, str]:
     # Los secretos solo se pasan a Terraform mediante variables efímeras.
     result = {
         key: value for key, value in os.environ.items()
-        if key not in {"ANTHROPIC_API_KEY", "SPLUNK_HEC_TOKEN", "DD_API_KEY"}
+        if key not in {"ANTHROPIC_API_KEY", "DD_API_KEY"}
         and not key.startswith("TF_VAR_")
     }
     result.update({
@@ -84,13 +81,10 @@ def load_config() -> dict:
     from datadog_observability import SITES
     if config.get("datadog_site", "datadoghq.com") not in SITES:
         raise LabError("datadog_site no admitido.")
-    if config.get("observability_provider") == "datadog" and config.get("splunk_hec_endpoint"):
-        raise LabError("Para migrar a Datadog configura splunk_hec_endpoint como cadena vacía.")
     return {
         "aws_region": "us-east-1", "project_name": "crewai-lab",
         "private_network": True, "anthropic_model": "claude-sonnet-4-6",
-        "splunk_hec_endpoint": "", "splunk_delivery_mode": "hec",
-        "splunk_hec_verify_tls": True, **config,
+        **config,
     }
 
 
@@ -147,7 +141,6 @@ def up(config: dict) -> None:
     require_commands("docker")
     execute(["docker", "info"], capture=True)
     api_key = secret("ANTHROPIC_API_KEY")
-    hec_token = secret("SPLUNK_HEC_TOKEN") if config["splunk_hec_endpoint"] else ""
     dd_key = secret("DD_API_KEY") if config.get("observability_provider") == "datadog" else ""
     initialize()
     check_state(config, outputs(required=False))
@@ -161,8 +154,7 @@ def up(config: dict) -> None:
         "apply", "-input=false", "-auto-approve", "-no-color",
         f"-var-file={CONFIG}", f"-var=image_tag={image_tag}",
         f"-var=secret_revision={int(time.time())}",
-        env=environment(TF_VAR_anthropic_api_key=api_key, TF_VAR_splunk_hec_token=hec_token,
-                        TF_VAR_datadog_api_key=dd_key),
+        env=environment(TF_VAR_anthropic_api_key=api_key, TF_VAR_datadog_api_key=dd_key),
     )
     state = outputs()
     repository = state["repository_url"]
@@ -284,7 +276,7 @@ def down(config: dict, state: dict) -> None:
             wait_tasks(config, state["cluster_arn"], arns)
     print("Eliminando los recursos administrados, incluidas imágenes, secretos y evidencia almacenada en AWS...", flush=True)
     terraform("destroy", "-input=false", "-auto-approve", "-no-color", f"-var-file={CONFIG}")
-    print("Recursos de Terraform eliminados. El estado local y los datos ya enviados a Datadog/Splunk permanecen fuera de esta eliminación.")
+    print("Recursos de Terraform eliminados. El estado local y los datos ya enviados a Datadog permanecen fuera de esta eliminación.")
 
 
 def datadog_test():
@@ -306,30 +298,6 @@ def datadog_test():
         raise LabError(str(exc)) from None
     print(f"Datadog Logs aceptó el evento. Confirma su indexación: service:{auditor.service} @event_id:{event_id}")
     print("Esta prueba valida Logs; las trazas se comprueban con ./lab run.")
-
-
-def hec_test() -> None:
-    """Enviar un único evento sintético antes de desplegar o consumir el LLM."""
-    sys.path.insert(0, str(ROOT))
-    from splunk_hec import HECClient, HECError
-
-    config = json.loads(CONFIG.read_text()) if CONFIG.exists() else {}
-    endpoint = os.environ.get("SPLUNK_HEC_URL", "").strip() or config.get("splunk_hec_endpoint", "")
-    if not endpoint:
-        raise LabError("Configura splunk_hec_endpoint o exporta SPLUNK_HEC_URL con la URL base HTTPS de tu trial.")
-    event_id = str(uuid4())
-    event = {
-        "timestamp": datetime.now(timezone.utc).isoformat(), "level": "INFO",
-        "run_id": str(uuid4()), "event_id": event_id,
-        "evento": "prueba_conexion", "simulado": True,
-    }
-    try:
-        verify_value = os.environ.get("SPLUNK_HEC_VERIFY_TLS")
-        verify_tls = config.get("splunk_hec_verify_tls", True) if verify_value is None else verify_value.lower() != "false"
-        HECClient(endpoint, secret("SPLUNK_HEC_TOKEN"), verify_tls=verify_tls).send(event)
-    except HECError as error:
-        raise LabError(str(error)) from None
-    print(f'HEC aceptó el evento. Confirma su indexación buscando en Splunk: index=* event_id="{event_id}"')
 
 
 def opik_compose(*args: str) -> None:
@@ -390,8 +358,6 @@ def opik_run() -> None:
         "OPIK_URL_OVERRIDE": "http://127.0.0.1:5173/api",
         "OPIK_PROJECT_NAME": local_env.get("OPIK_PROJECT_NAME", "agent-compliance-lab"),
         "OPIK_ENVIRONMENT": "laboratorio-local",
-        "SPLUNK_HEC_URL": "",
-        "SPLUNK_HEC_TOKEN": "",
     })
     print("Ejecutando los ocho casos localmente. Esta misión consume tokens de Anthropic.")
     execute([sys.executable, str(ROOT / "laboratorio_empresa.py")], env=local_env)
@@ -399,14 +365,11 @@ def opik_run() -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Crear, ejecutar y eliminar el laboratorio de CrewAI en AWS.")
-    parser.add_argument("command", choices=["up", "publish", "run", "down", "logs", "hec-test", "datadog-test", "validate", "dashboard", "opik-up", "opik-down", "opik-status", "opik-run"])
+    parser.add_argument("command", choices=["up", "publish", "run", "down", "logs", "datadog-test", "validate", "dashboard", "opik-up", "opik-down", "opik-status", "opik-run"])
     parser.add_argument("--port", type=int, default=8765, help="Puerto local del dashboard (8765).")
     args = parser.parse_args()
     if args.command == "datadog-test":
         datadog_test()
-        return
-    if args.command == "hec-test":
-        hec_test()
         return
     if args.command == "dashboard":
         from dashboard import serve

@@ -48,13 +48,11 @@ class LifecycleTests(unittest.TestCase):
 
     def test_secrets_are_not_inherited_by_build_or_aws_processes(self):
         with patch.dict(os.environ, {
-            "ANTHROPIC_API_KEY": "sensitive-a", "SPLUNK_HEC_TOKEN": "sensitive-b",
-            "DD_API_KEY": "sensitive-dd",
+            "ANTHROPIC_API_KEY": "sensitive-a", "DD_API_KEY": "sensitive-dd",
             "TF_VAR_anthropic_api_key": "sensitive-c", "AWS_PROFILE": "lab-profile",
         }):
             env = lab.environment()
         self.assertNotIn("ANTHROPIC_API_KEY", env)
-        self.assertNotIn("SPLUNK_HEC_TOKEN", env)
         self.assertNotIn("DD_API_KEY", env)
         self.assertNotIn("TF_VAR_anthropic_api_key", env)
         self.assertEqual(env["AWS_PROFILE"], "lab-profile")
@@ -136,7 +134,7 @@ class LifecycleTests(unittest.TestCase):
              patch.object(lab, "execute", side_effect=execute), \
              patch.object(lab, "terraform", side_effect=terraform), \
              patch.object(lab, "aws", return_value="temporary-ecr-password"):
-            lab.up({**CONFIG, "splunk_hec_endpoint": "", "observability_provider": "datadog"})
+            lab.up({**CONFIG, "observability_provider": "datadog"})
         commands = [args[:2] for args, _ in calls]
         self.assertLess(commands.index(["docker", "build"]), commands.index(["terraform", "apply"]))
         self.assertLess(commands.index(["terraform", "apply"]), commands.index(["docker", "push"]))

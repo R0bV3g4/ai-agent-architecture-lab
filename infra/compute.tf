@@ -60,7 +60,6 @@ resource "aws_iam_role_policy" "execution" {
         Effect = "Allow"
         Action = ["secretsmanager:GetSecretValue"]
         Resource = concat([aws_secretsmanager_secret.anthropic.arn],
-          local.direct_hec_enabled ? [aws_secretsmanager_secret.splunk[0].arn] : [],
         local.datadog_enabled ? [aws_secretsmanager_secret.datadog[0].arn] : [])
       }
     ]
@@ -96,10 +95,7 @@ resource "aws_ecs_task_definition" "lab" {
     environment = concat([
       { name = "ANTHROPIC_MODEL", value = var.anthropic_model },
       { name = "PYTHONUNBUFFERED", value = "1" }
-      ], local.direct_hec_enabled ? [
-      { name = "SPLUNK_HEC_URL", value = var.splunk_hec_endpoint },
-      { name = "SPLUNK_HEC_VERIFY_TLS", value = tostring(var.splunk_hec_verify_tls) }
-      ] : [], local.datadog_enabled ? [
+      ], local.datadog_enabled ? [
       { name = "OBSERVABILITY_PROVIDER", value = "datadog" },
       { name = "DD_SITE", value = var.datadog_site },
       { name = "DD_SERVICE", value = "agent-compliance-lab" },
@@ -109,7 +105,6 @@ resource "aws_ecs_task_definition" "lab" {
     ] : [])
     secrets = concat(
       [{ name = "ANTHROPIC_API_KEY", valueFrom = aws_secretsmanager_secret.anthropic.arn }],
-      local.direct_hec_enabled ? [{ name = "SPLUNK_HEC_TOKEN", valueFrom = "${aws_secretsmanager_secret.splunk[0].arn}:hec_token::" }] : [],
       local.datadog_enabled ? [{ name = "DD_API_KEY", valueFrom = aws_secretsmanager_secret.datadog[0].arn }] : []
     )
     logConfiguration = {
@@ -123,5 +118,5 @@ resource "aws_ecs_task_definition" "lab" {
     }
   }])
 
-  depends_on = [aws_iam_role_policy.execution, aws_secretsmanager_secret_version.anthropic, aws_secretsmanager_secret_version.splunk, aws_secretsmanager_secret_version.datadog]
+  depends_on = [aws_iam_role_policy.execution, aws_secretsmanager_secret_version.anthropic, aws_secretsmanager_secret_version.datadog]
 }

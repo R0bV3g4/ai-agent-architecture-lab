@@ -24,8 +24,7 @@ Edita `infra/lab.tfvars.json`, conservando tu cuenta y región AWS:
 
 ```json
 "observability_provider": "datadog",
-"datadog_site": "datadoghq.com",
-"splunk_hec_endpoint": ""
+"datadog_site": "datadoghq.com"
 ```
 
 Sitios admitidos: `datadoghq.com` (app.datadoghq.com), `us3.datadoghq.com`,
@@ -58,9 +57,6 @@ docker info
 `up` solicita ANTHROPIC_API_KEY y DD_API_KEY, construye/publica la imagen y aplica
 Terraform. Las claves se pasan mediante variables efímeras y secretos write-only;
 no se incluyen en argumentos, imagen ni estado de Terraform.
-Si migras un despliegue anterior, el endpoint Splunk vacío elimina sus recursos
-administrados, incluido el respaldo Firehose si existía: exporta esa evidencia antes.
-
 Cada `run` ejecuta los ocho casos una vez, consume Fargate y Anthropic, y termina.
 `./lab dashboard` conserva el botón Iniciar misión y la lectura de CloudWatch;
 la nueva definición ECS hace que esas misiones también envíen datos a Datadog.

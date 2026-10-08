@@ -47,40 +47,6 @@ variable "anthropic_api_key" {
   ephemeral   = true
 }
 
-variable "splunk_hec_endpoint" {
-  description = "URL base HTTPS de HEC, sin /services/collector; vacío desactiva Splunk."
-  type        = string
-  default     = ""
-  validation {
-    condition     = var.splunk_hec_endpoint == "" || can(regex("^https://[A-Za-z0-9.-]+(:[0-9]+)?/?$", var.splunk_hec_endpoint))
-    error_message = "Usa la URL base HTTPS de HEC, por ejemplo https://hec.example.com:8088."
-  }
-}
-
-variable "splunk_hec_token" {
-  description = "Token de HEC; nunca se almacena en el estado de Terraform."
-  type        = string
-  default     = ""
-  sensitive   = true
-  ephemeral   = true
-}
-
-variable "splunk_hec_verify_tls" {
-  description = "Valida el certificado HEC. Puede ser false únicamente para un trial con certificado autofirmado."
-  type        = bool
-  default     = true
-}
-
-variable "splunk_delivery_mode" {
-  description = "hec: envío directo para el trial; firehose: requiere habilitación y ACK en Splunk."
-  type        = string
-  default     = "hec"
-  validation {
-    condition     = contains(["hec", "firehose"], var.splunk_delivery_mode)
-    error_message = "splunk_delivery_mode debe ser hec o firehose."
-  }
-}
-
 variable "secret_revision" {
   description = "Incrementar al cambiar las claves; ./lab up asigna una nueva revisión."
   type        = number

@@ -2,7 +2,6 @@
 !Dockerfile
 !requirements.txt
 !laboratorio_empresa.py
-!splunk_hec.py
 !compliance.py
 !opik_observability.py
 !datadog_observability.py

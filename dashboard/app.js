@@ -7,7 +7,7 @@ const people=[
   {id:'compras',name:'Compras',role:'Comprador corporativo',job:'Comparando proveedores',color:'#c6f171',soft:'#253426',room:'#19251e',skin:'#c79774',hair:'#2a3035'},
 ];
 const labels={idle:'En reposo',waiting:'En espera',working:'Trabajando',done:'Terminado',error:'Error',unknown:'Sin señal actual',excluded:'No participa'};
-const eventLabels={inicio_laboratorio:'Inició la ronda',tarea_iniciada:'Empezó a trabajar',tarea_finalizada:'Tarea terminada',herramienta_ejecutada:'Herramienta ejecutada',llm_respuesta:'Anthropic respondió',llm_error:'Error del modelo',fin_laboratorio:'Ronda terminada',tarea_fallida:'Falló la tarea',error_laboratorio:'Falló la ronda',decision_evaluada:'Decisión contrastada con evidencia',envio_splunk_fallido:'Envío a Splunk fallido'};
+const eventLabels={inicio_laboratorio:'Inició la ronda',tarea_iniciada:'Empezó a trabajar',tarea_finalizada:'Tarea terminada',herramienta_ejecutada:'Herramienta ejecutada',llm_respuesta:'Anthropic respondió',llm_error:'Error del modelo',fin_laboratorio:'Ronda terminada',tarea_fallida:'Falló la tarea',error_laboratorio:'Falló la ronda',decision_evaluada:'Decisión contrastada con evidencia'};
 const number=new Intl.NumberFormat('es-MX');
 let state=null,selection='latest',selected=null,journal=false,sending=false,toastTimer,lastDetail='',selectedCase=null;
 let catalog=[];

@@ -29,10 +29,6 @@ data "aws_availability_zones" "available" {
 }
 
 locals {
-  name               = var.project_name
-  partition          = data.aws_partition.current.partition
-  splunk_enabled     = var.splunk_hec_endpoint != ""
-  direct_hec_enabled = local.splunk_enabled && var.splunk_delivery_mode == "hec"
-  firehose_enabled   = local.splunk_enabled && var.splunk_delivery_mode == "firehose"
-  hec_port           = try(tonumber(regex(":([0-9]+)/?$", var.splunk_hec_endpoint)[0]), 443)
+  name      = var.project_name
+  partition = data.aws_partition.current.partition
 }

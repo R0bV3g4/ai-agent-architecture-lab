@@ -13,8 +13,5 @@ output "lab" {
     subnet_id              = var.private_network ? aws_subnet.private[0].id : aws_subnet.public.id
     security_group_id      = aws_security_group.task.id
     assign_public_ip       = var.private_network ? "DISABLED" : "ENABLED"
-    splunk_enabled         = local.splunk_enabled
-    splunk_delivery_mode   = var.splunk_delivery_mode
-    backup_bucket          = local.firehose_enabled ? aws_s3_bucket.audit[0].id : null
   }
 }
