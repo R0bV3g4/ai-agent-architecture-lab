@@ -1,0 +1,4 @@
+crewai[anthropic]==1.15.23
+langchain==1.4.3
+opik>=1.9,<3
+ddtrace==4.15.4

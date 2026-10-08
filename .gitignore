@@ -1,0 +1,15 @@
+.venv/
+.crewai_storage/
+__pycache__/
+*.py[cod]
+.env
+auditoria.log
+**/.terraform/
+**/terraform.tfstate*
+**/terraform.tfplan
+**/crash.log
+infra/lab.tfvars.json
+infra/*.auto.tfvars*
+.opik/
+.DS_Store
+.DS_Store

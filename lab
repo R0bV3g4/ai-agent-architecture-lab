@@ -1,0 +1,11 @@
+#!/bin/sh
+set -eu
+LAB_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+if [ -x "$LAB_ROOT/.venv/bin/python" ]; then
+    exec "$LAB_ROOT/.venv/bin/python" "$LAB_ROOT/scripts/lab.py" "$@"
+fi
+if command -v python3 >/dev/null 2>&1; then
+    exec python3 "$LAB_ROOT/scripts/lab.py" "$@"
+fi
+echo "Se necesita Python 3.11 o superior en PATH o en .venv/bin/python." >&2
+exit 1

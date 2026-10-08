@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#080d14">
+<title>Agentes en acción · CrewAI Lab</title>
+<link rel="stylesheet" href="/style.css"><script src="/state.js" defer></script><script src="/app.js" defer></script>
+</head>
+<body>
+<main class="office">
+  <header class="header">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">&gt;_</span><div><p class="eyebrow">CREWAI LAB <span>/ CONTROL DE MISIONES</span></p><h1>Agentes en acción<span>_</span></h1></div></div>
+    <div class="connection"><i id="connection-dot"></i><span id="connection">Conectando con AWS</span></div>
+  </header>
+  <section class="mission-picker" aria-label="Elegir escenarios">
+    <div><label for="mission-agent">Agente</label><select id="mission-agent"><option value="all">Todo el equipo</option><option value="finanzas">Finanzas</option><option value="soporte">Soporte</option><option value="rrhh">RR. HH.</option><option value="compras">Compras</option></select></div>
+    <div><label for="mission-case">Escenario</label><select id="mission-case"><option value="all">Todos los casos</option></select></div>
+    <p id="mission-preview" aria-live="polite">Cargando catálogo…</p>
+  </section>
+  <section class="control-bar" aria-label="Control de la ejecución">
+    <div class="run-summary"><span class="run-dot" id="run-dot"></span><div><strong id="run-status">Leyendo la última ejecución…</strong><small id="run-caption">Elige los agentes y casos de tu misión.</small></div></div>
+    <div class="launch-controls">
+      <label class="sr-only" for="rounds">Número de sesiones</label>
+      <select id="rounds"><option value="1">1 sesión</option><option value="3">3 sesiones</option><option value="5">5 sesiones</option><option value="10">10 sesiones</option></select>
+      <button id="start" class="primary" disabled><span aria-hidden="true">▶</span> Iniciar misión</button>
+      <button id="stop" class="stop" hidden>Parar tras esta sesión</button>
+    </div>
+  </section>
+  <div id="error" class="error" role="alert" hidden></div>
+  <div class="section-heading"><h2>Estaciones de agentes</h2><span>04 AGENTES <b aria-hidden="true">/</b> SIMULACIÓN</span></div>
+  <section id="agents" class="agents" aria-label="Equipo de agentes"></section>
+  <section class="usage" aria-label="Consumo real de la API">
+    <div class="usage-heading"><span class="usage-symbol" aria-hidden="true">⌁</span><div><strong>Anthropic</strong><small id="model">Leyendo modelo…</small></div></div>
+    <div><strong id="tokens">—</strong><small>tokens registrados</small></div>
+    <div><strong id="calls">—</strong><small>respuestas API</small></div>
+    <div><strong id="completed">0/8</strong><small>casos atendidos</small></div>
+    <p id="usage-note">El consumo aparece al recibir la respuesta de Anthropic.</p>
+  </section>
+  <footer class="footer">
+    <span id="sync">Estados recibidos de AWS</span>
+    <div><label class="sr-only" for="run-select">Historial de ejecuciones</label><select id="run-select"><option value="latest">Última ejecución</option></select><button id="journal">Ver registros</button></div>
+  </footer>
+  <p id="batch" class="batch">Cada ronda usa AWS y Anthropic. Las operaciones empresariales son simuladas.</p>
+  <div id="toast" class="toast" role="status" hidden></div>
+</main>
+<dialog id="inspector" aria-labelledby="detail-title">
+  <header class="detail-header"><div><p class="eyebrow" id="detail-role"></p><h2 id="detail-title"></h2></div><button id="close-inspector" aria-label="Cerrar detalle">×</button></header>
+  <p class="detail-status"><span id="detail-status"></span><span id="call-count"></span></p>
+  <p id="case-summary" class="case-summary" hidden></p>
+  <label class="sr-only" for="case-select">Caso del agente</label><select id="case-select" class="case-select" hidden></select>
+  <nav class="tabs" aria-label="Detalle del agente"><button data-tab="answer" class="active">Respuesta</button><button data-tab="actions">Acciones</button><button data-tab="activity">Registro</button></nav>
+  <div class="detail-content">
+    <section id="tab-answer"><details><summary>Caso recibido</summary><pre id="request"></pre></details><pre id="answer"></pre><p id="legacy" class="note" hidden>Esta ejecución antigua no registra el inicio de cada agente.</p></section>
+    <section id="tab-actions" hidden><pre id="actions"></pre><p class="note">Herramientas simuladas. Consulta la evaluación del caso en Respuesta; el texto también requiere revisión humana.</p></section>
+    <section id="tab-activity" hidden><ol id="timeline"></ol></section>
+  </div>
+  <footer class="detail-footer"><span id="run-id"></span><button id="copy">Copiar búsqueda Datadog</button></footer>
+</dialog>
+</body>
+</html>

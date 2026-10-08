@@ -1,0 +1,114 @@
+{
+  "title": "AGENT WATCH | Business Agents · Security Lab",
+  "description": "CrewAI + Anthropic en AWS. Evaluaciones de escenarios mock, no certificación. El cumplimiento mide solo eventos recibidos. Selecciona una misión y comprueba cobertura. Logs recibidos al finalizar cada misión; no es estado en vivo. Los conteos pueden incluir reintentos duplicados.",
+  "layout_type": "ordered",
+  "reflow_type": "fixed",
+  "template_variables": [
+    {"name": "agente", "prefix": "@agente", "defaults": ["*"], "available_values": ["finanzas", "soporte", "rrhh", "compras"]},
+    {"name": "mision", "prefix": "@run_id", "defaults": ["*"]}
+  ],
+  "widgets": [
+    {
+      "layout": {"x": 0, "y": 0, "width": 12, "height": 2},
+      "definition": {"type": "note", "content": "# AGENT WATCH  /  MISSION CONTROL\n**04 AGENTES  ·  08 ESCENARIOS  ·  AWS × ANTHROPIC × CREWAI**\n\nAcciones permitidas y solicitudes rechazadas, con evidencia por misión. Herramientas y datos simulados. Selecciona una misión arriba para investigar sus resultados.", "background_color": "purple", "font_size": "16", "text_align": "left", "show_tick": false, "has_padding": true}
+    },
+    {
+      "layout": {"x": 0, "y": 2, "width": 2, "height": 2},
+      "definition": {"type": "query_value", "title": "MISIONES CON EVIDENCIA", "precision": 0, "autoscale": false, "requests": [{"response_format": "scalar", "queries": [{"name": "a", "data_source": "logs", "search": {"query": "service:agent-compliance-lab @evento:decision_evaluada $agente $mision"}, "indexes": ["*"], "compute": {"aggregation": "cardinality", "metric": "@run_id"}, "group_by": []}], "formulas": [{"formula": "a"}]}]}
+    },
+    {
+      "layout": {"x": 2, "y": 2, "width": 2, "height": 2},
+      "definition": {"type": "query_value", "title": "EVALUACIONES RECIBIDAS", "precision": 0, "autoscale": false, "requests": [{"response_format": "scalar", "queries": [{"name": "a", "data_source": "logs", "search": {"query": "service:agent-compliance-lab @evento:decision_evaluada $agente $mision"}, "indexes": ["*"], "compute": {"aggregation": "count"}, "group_by": []}], "formulas": [{"formula": "a"}]}]}
+    },
+    {
+      "layout": {"x": 4, "y": 2, "width": 2, "height": 2},
+      "definition": {"type": "query_value", "title": "CONTROLES SUPERADOS", "precision": 1, "autoscale": false, "custom_unit": "%", "requests": [{"response_format": "scalar", "queries": [
+        {"name": "a", "data_source": "logs", "search": {"query": "service:agent-compliance-lab @evento:decision_evaluada @evaluacion:CUMPLE $agente $mision"}, "indexes": ["*"], "compute": {"aggregation": "count"}, "group_by": []},
+        {"name": "b", "data_source": "logs", "search": {"query": "service:agent-compliance-lab @evento:decision_evaluada $agente $mision"}, "indexes": ["*"], "compute": {"aggregation": "count"}, "group_by": []}
+      ], "formulas": [{"formula": "100 * a / b"}], "conditional_formats": [{"comparator": ">=", "value": 100, "palette": "white_on_green"}, {"comparator": "<", "value": 100, "palette": "white_on_yellow"}]}]}
+    },
+    {
+      "layout": {"x": 6, "y": 2, "width": 2, "height": 2},
+      "definition": {"type": "query_value", "title": "OPERACIONES PERMITIDAS", "precision": 0, "autoscale": false, "requests": [{"response_format": "scalar", "queries": [{"name": "a", "data_source": "logs", "search": {"query": "service:agent-compliance-lab @evento:decision_evaluada @operacion_permitida:1 $agente $mision"}, "indexes": ["*"], "compute": {"aggregation": "count"}, "group_by": []}], "formulas": [{"formula": "a"}], "conditional_formats": [{"comparator": ">", "value": 0, "palette": "white_on_green"}]}]}
+    },
+    {
+      "layout": {"x": 8, "y": 2, "width": 2, "height": 2},
+      "definition": {"type": "query_value", "title": "RECHAZOS CORRECTOS", "precision": 0, "autoscale": false, "requests": [{"response_format": "scalar", "queries": [{"name": "a", "data_source": "logs", "search": {"query": "service:agent-compliance-lab @evento:decision_evaluada @rechazo_correcto:1 $agente $mision"}, "indexes": ["*"], "compute": {"aggregation": "count"}, "group_by": []}], "formulas": [{"formula": "a"}], "conditional_formats": [{"comparator": ">", "value": 0, "palette": "white_on_yellow"}]}]}
+    },
+    {
+      "layout": {"x": 10, "y": 2, "width": 2, "height": 2},
+      "definition": {"type": "query_value", "title": "RESPUESTAS ANTHROPIC", "precision": 0, "autoscale": false, "requests": [{"response_format": "scalar", "queries": [{"name": "a", "data_source": "logs", "search": {"query": "service:agent-compliance-lab @evento:llm_respuesta $agente $mision"}, "indexes": ["*"], "compute": {"aggregation": "count"}, "group_by": []}], "formulas": [{"formula": "a"}]}]}
+    },
+    {
+      "layout": {"x": 0, "y": 4, "width": 12, "height": 1},
+      "definition": {"type": "note", "content": "### AGENT OPERATIONS\nVerde: operación permitida ejecutada. Naranja: solicitud prohibida rechazada. Ambas pueden cumplir la política.", "background_color": "blue", "font_size": "14", "text_align": "left", "show_tick": false, "has_padding": true}
+    },
+    {
+      "layout": {"x": 0, "y": 5, "width": 3, "height": 3},
+      "definition": {"type": "timeseries", "title": "01 / FINANZAS · Pagos", "show_legend": true, "requests": [
+        {"response_format": "timeseries", "display_type": "bars", "queries": [{"name": "a", "data_source": "logs", "search": {"query": "service:agent-compliance-lab @evento:decision_evaluada @agente:finanzas @operacion_permitida:1 $agente $mision"}, "indexes": ["*"], "compute": {"aggregation": "count"}, "group_by": []}], "formulas": [{"formula": "a", "alias": "Operación permitida"}], "style": {"palette": "green"}},
+        {"response_format": "timeseries", "display_type": "bars", "queries": [{"name": "b", "data_source": "logs", "search": {"query": "service:agent-compliance-lab @evento:decision_evaluada @agente:finanzas @rechazo_correcto:1 $agente $mision"}, "indexes": ["*"], "compute": {"aggregation": "count"}, "group_by": []}], "formulas": [{"formula": "b", "alias": "Rechazo correcto"}], "style": {"palette": "orange"}}
+      ]}
+    },
+    {
+      "layout": {"x": 3, "y": 5, "width": 3, "height": 3},
+      "definition": {"type": "timeseries", "title": "02 / SOPORTE · Reembolsos", "show_legend": true, "requests": [
+        {"response_format": "timeseries", "display_type": "bars", "queries": [{"name": "a", "data_source": "logs", "search": {"query": "service:agent-compliance-lab @evento:decision_evaluada @agente:soporte @operacion_permitida:1 $agente $mision"}, "indexes": ["*"], "compute": {"aggregation": "count"}, "group_by": []}], "formulas": [{"formula": "a", "alias": "Operación permitida"}], "style": {"palette": "green"}},
+        {"response_format": "timeseries", "display_type": "bars", "queries": [{"name": "b", "data_source": "logs", "search": {"query": "service:agent-compliance-lab @evento:decision_evaluada @agente:soporte @rechazo_correcto:1 $agente $mision"}, "indexes": ["*"], "compute": {"aggregation": "count"}, "group_by": []}], "formulas": [{"formula": "b", "alias": "Rechazo correcto"}], "style": {"palette": "orange"}}
+      ]}
+    },
+    {
+      "layout": {"x": 6, "y": 5, "width": 3, "height": 3},
+      "definition": {"type": "timeseries", "title": "03 / RR. HH. · Confidencialidad", "show_legend": true, "requests": [
+        {"response_format": "timeseries", "display_type": "bars", "queries": [{"name": "a", "data_source": "logs", "search": {"query": "service:agent-compliance-lab @evento:decision_evaluada @agente:rrhh @operacion_permitida:1 $agente $mision"}, "indexes": ["*"], "compute": {"aggregation": "count"}, "group_by": []}], "formulas": [{"formula": "a", "alias": "Operación permitida"}], "style": {"palette": "green"}},
+        {"response_format": "timeseries", "display_type": "bars", "queries": [{"name": "b", "data_source": "logs", "search": {"query": "service:agent-compliance-lab @evento:decision_evaluada @agente:rrhh @rechazo_correcto:1 $agente $mision"}, "indexes": ["*"], "compute": {"aggregation": "count"}, "group_by": []}], "formulas": [{"formula": "b", "alias": "Rechazo correcto"}], "style": {"palette": "orange"}}
+      ]}
+    },
+    {
+      "layout": {"x": 9, "y": 5, "width": 3, "height": 3},
+      "definition": {"type": "timeseries", "title": "04 / COMPRAS · Proveedores", "show_legend": true, "requests": [
+        {"response_format": "timeseries", "display_type": "bars", "queries": [{"name": "a", "data_source": "logs", "search": {"query": "service:agent-compliance-lab @evento:decision_evaluada @agente:compras @operacion_permitida:1 $agente $mision"}, "indexes": ["*"], "compute": {"aggregation": "count"}, "group_by": []}], "formulas": [{"formula": "a", "alias": "Operación permitida"}], "style": {"palette": "green"}},
+        {"response_format": "timeseries", "display_type": "bars", "queries": [{"name": "b", "data_source": "logs", "search": {"query": "service:agent-compliance-lab @evento:decision_evaluada @agente:compras @rechazo_correcto:1 $agente $mision"}, "indexes": ["*"], "compute": {"aggregation": "count"}, "group_by": []}], "formulas": [{"formula": "b", "alias": "Rechazo correcto"}], "style": {"palette": "orange"}}
+      ]}
+    },
+    {
+      "layout": {"x": 0, "y": 8, "width": 6, "height": 3},
+      "definition": {"type": "toplist", "title": "CONTROL SCOREBOARD / Resultados por agente", "requests": [{"response_format": "scalar", "queries": [{"name": "a", "data_source": "logs", "search": {"query": "service:agent-compliance-lab @evento:decision_evaluada $agente $mision"}, "indexes": ["*"], "compute": {"aggregation": "count"}, "group_by": [
+        {"facet": "@agente", "limit": 4, "sort": {"aggregation": "count", "order": "desc"}},
+        {"facet": "@evaluacion", "limit": 3, "sort": {"aggregation": "count", "order": "desc"}}
+      ]}], "formulas": [{"formula": "a"}]}]}
+    },
+    {
+      "layout": {"x": 6, "y": 8, "width": 6, "height": 3},
+      "definition": {"type": "timeseries", "title": "TOOL ACTIVITY / Llamadas observadas por agente", "show_legend": true, "requests": [{"response_format": "timeseries", "display_type": "bars", "queries": [{"name": "a", "data_source": "logs", "search": {"query": "service:agent-compliance-lab @evento:herramienta_ejecutada $agente $mision"}, "indexes": ["*"], "compute": {"aggregation": "count"}, "group_by": [{"facet": "@agente", "limit": 4, "sort": {"aggregation": "count", "order": "desc"}}]}], "formulas": [{"formula": "a"}], "style": {"palette": "dog_classic"}}]}
+    },
+    {
+      "layout": {"x": 0, "y": 11, "width": 12, "height": 1},
+      "definition": {"type": "note", "content": "### EVIDENCE ROOM\nComprueba casos distintos por misión: 8 con todos los agentes; 2 con un agente seleccionado. N/D significa que la consulta no devolvió datos. Los paneles de actividad correcta no muestran las desviaciones: revísalas en las tablas de abajo.", "background_color": "purple", "font_size": "14", "text_align": "left", "show_tick": false, "has_padding": true}
+    },
+    {
+      "layout": {"x": 0, "y": 12, "width": 5, "height": 4},
+      "definition": {"type": "query_table", "title": "COBERTURA / Casos distintos por misión", "requests": [{"response_format": "scalar", "queries": [{"name": "a", "data_source": "logs", "search": {"query": "service:agent-compliance-lab @evento:decision_evaluada $agente $mision"}, "indexes": ["*"], "compute": {"aggregation": "cardinality", "metric": "@caso_id"}, "group_by": [{"facet": "@run_id", "limit": 20, "sort": {"aggregation": "count", "order": "desc"}}]}], "formulas": [{"formula": "a", "alias": "Casos distintos", "cell_display_mode": "bar"}]}]}
+    },
+    {
+      "layout": {"x": 5, "y": 12, "width": 7, "height": 4},
+      "definition": {"type": "query_table", "title": "AUDITORÍA / Escenarios y veredictos", "requests": [{"response_format": "scalar", "queries": [{"name": "a", "data_source": "logs", "search": {"query": "service:agent-compliance-lab @evento:decision_evaluada $agente $mision"}, "indexes": ["*"], "compute": {"aggregation": "count"}, "group_by": [
+        {"facet": "@agente", "limit": 4, "sort": {"aggregation": "count", "order": "desc"}},
+        {"facet": "@caso_id", "limit": 8, "sort": {"aggregation": "count", "order": "desc"}},
+        {"facet": "@evaluacion", "limit": 3, "sort": {"aggregation": "count", "order": "desc"}}
+      ]}], "formulas": [{"formula": "a", "alias": "Evaluaciones", "cell_display_mode": "bar"}]}]}
+    },
+    {
+      "layout": {"x": 0, "y": 16, "width": 12, "height": 3},
+      "definition": {"type": "query_table", "title": "INVESTIGAR / Solo INCUMPLE y REVISAR · sin filas = sin coincidencias", "requests": [{"response_format": "scalar", "queries": [{"name": "a", "data_source": "logs", "search": {"query": "service:agent-compliance-lab @evento:decision_evaluada (@evaluacion:INCUMPLE OR @evaluacion:REVISAR) $agente $mision"}, "indexes": ["*"], "compute": {"aggregation": "count"}, "group_by": [
+        {"facet": "@run_id", "limit": 10, "sort": {"aggregation": "count", "order": "desc"}},
+        {"facet": "@caso_id", "limit": 8, "sort": {"aggregation": "count", "order": "desc"}},
+        {"facet": "@evaluacion", "limit": 2, "sort": {"aggregation": "count", "order": "desc"}}
+      ]}], "formulas": [{"formula": "a", "alias": "Eventos para investigar"}]}]}
+    },
+    {
+      "layout": {"x": 0, "y": 19, "width": 12, "height": 1},
+      "definition": {"type": "note", "content": "**ALCANCE** · 100 % significa controles superados sobre evaluaciones recibidas, no seguridad absoluta. Los ocho escenarios se repiten en cada misión. Para validar alertas de fallo, utiliza pruebas negativas explícitas y separadas de las ejecuciones normales. Datos de auditoría enviados al finalizar la misión; no es un indicador de agentes conectados en vivo.", "background_color": "gray", "font_size": "12", "text_align": "left", "show_tick": false, "has_padding": true}
+    }
+  ]
+}
